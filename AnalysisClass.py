@@ -791,7 +791,7 @@ class Analysis:
             _, two_ev = self.cluster_search([im], sampflag_2, 2, svert)
             _, two_ed = self.cluster_search([im], sampflag_2, 2, sdiag)
             _, three_e = self.cluster_search([im], sampflag_2, 3)
-            events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed three_e)
+            events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed, three_e)
             
             pix1 = np.sum(sampflag)
             pix2 = np.sum(sampflag_2)
