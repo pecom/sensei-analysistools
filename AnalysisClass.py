@@ -423,8 +423,7 @@ class Analysis:
         return np.array([np.sum(im[mk] == count) for im,mk in zip(files, masks)])
     
     # Slightly smarter search looking for Ne- (count) in a contiguous cluster
-    def cluster_search(self, files, masks, count):
-        s = np.array([[1, 1, 1], [1,1,1], [1,1,1]])
+    def cluster_search(self, files, masks, count, s=np.array([[1, 1, 1], [1,1,1], [1,1,1]])):
         flen = len(files)
         subcounts = np.zeros((count, flen))
         for sampmap, fmask, nid in zip(files, masks, np.arange(flen)):
@@ -782,11 +781,17 @@ class Analysis:
             expo2_size = np.sum(exposure_2)
             expos_obj = (expo_size, expo2_size)
 
+            shoriz = np.array([[0,0,0],[1,1,1],[0,0,0]])
+            svert = np.array([[0,1,0],[0,1,0],[0,1,0]])
+            sdiag = np.array([[1,0,1],[0,1,0],[1,0,1]])
             events = self.one_pix_search([im], sampflag, 1)[0]
             events_2 = self.one_pix_search([im], sampflag_2, 2)[0]
             kale, two_e = self.cluster_search([im], sampflag_2, 2)
+            _, two_eh = self.cluster_search([im], sampflag_2, 2, shoriz)
+            _, two_ev = self.cluster_search([im], sampflag_2, 2, svert)
+            _, two_ed = self.cluster_search([im], sampflag_2, 2, sdiag)
             _, three_e = self.cluster_search([im], sampflag_2, 3)
-            events_obj = (events,events_2, two_e, three_e)
+            events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed three_e)
             
             pix1 = np.sum(sampflag)
             pix2 = np.sum(sampflag_2)
