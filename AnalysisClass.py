@@ -231,6 +231,13 @@ class DataFiles:
         xx,yy = np.mgrid[-r:r+1, -r:r+1]
         tf = ((xx**2 + yy**2) <= r**2)
         return tf
+
+    def get_bleedfilt(self, r):
+        ks = 2*r+1
+        kale = np.zeros((ks,ks))
+        kale[ks:, ks] = 1
+        kale[ks, ks:] = 1
+        return kale
     
     # Add a halo mask. Note that this one needs the science files (images) as an argument!
     def add_halomask(self, masks, images, haloval, rad):
@@ -254,6 +261,18 @@ class DataFiles:
             m[conved_mask] |= haloval
         return masks
     
+    # Add a bleed mask using convolution to make life easier and faster!
+    # Rad should be 100 for 1e- analysis and 50 for 2e- analysis
+    def conv_bleedmask(self, masks, images, bleedval, rad):
+        numero = np.arange(len(masks))
+        imsize = images[0].shape
+        tfilt = self.get_bleedfilt(rad).astype(int)
+        for m, im, n in zip(masks, images, numero):
+            hee_pos = (im > 100)
+            conved_mask = np.round(signal.fftconvolve(hee_pos, tfilt, mode='same')).astype(bool)
+            m[conved_mask] |= bleedval
+        return masks
+
     # Add a hotcolumn mask
     def add_hotcolmask(self, masks, hotcols, hcvalue, prescan=False ):
         # Prescan==True -> The hot columns INCLUDE the prescan region
@@ -290,6 +309,10 @@ class DataFiles:
         _ = self.remove_maskval(self.mfs, mflag)
         _ = self.conv_halomask(self.mfs, self.sfs, mflag, rad) 
         
+    # Convenience function to update (remove and add new) bleed mask using convolve method
+    def update_convbleed(self, mflag, rad):
+        _ = self.remove_maskval(self.mfs, mflag)
+        _ = self.conv_bleedmask(self.mfs, self.sfs, mflag, rad) 
     # Given the bad flags  (bfs) we turn the mask files (mfs)
     # into boolean arrays that are "inverse masks" such that
     # True means we WANT to count the pixel and False is we
@@ -474,67 +497,6 @@ class Analysis:
             for z in zipped_clust:
                 bool_grid[z[0] - off_origin[0], z[1] - off_origin[1]] = False
         return bool_grid, poss_grid
-    
-#     # Create halo radius plot with extra binning for energy of cluster.
-#     # If -1 is used as a right edge for a bin it is treated as +infinity
-#     def halo_cherenkov_binned(self, im, mk, bins, rads, fixrad, include=True):
-#         
-#         rkeys = []
-#         sflags = []
-#         pixsize = []
-#         expo = []
-#         counts = []
-#         
-#         sampmask = copy.deepcopy(mk)
-#         [clusterID,numClu] = label(im, self.df.s)
-#         lbls = np.arange(numClu+1)
-#         energyTots = labeled_comprehension(im, clusterID, lbls, lambda x : np.sum(x)*self.df.e2ev, float, 0)
-#         haloVal = self.df.maskFlags['haloM']
-#         
-#         # bins should be in increasing order!
-#         for i in range(len(bins)-1):
-#             _ = self.df.remove_maskval([sampmask], haloVal)
-#             firstRun = True
-#             if bins[i+1]== -1:
-#                 good_energy = (energyTots >= bins[i])
-#             else:
-#                 good_energy = (energyTots < bins[i+1]) * (energyTots >= bins[i])
-# 
-#             if bins[-1] ==-1:
-#                 full_range = energyTots >= bins[0]
-#             else:
-#                 full_range = (energyTots >= bins[0]) * (energyTots < bins[-1])
-# 
-#             else_energy = full_range ^ good_energy
-#             good_thresh = lbls[good_energy]
-#             else_thresh = lbls[else_energy]
-# 
-#             for r in rads:
-#                 hrad = r
-#                 lrad = fixrad
-#                 for l in good_thresh:
-#                     b_grid, p_grid = self.he_boolgrid(clusterID, l, hrad, include=include)
-#                     xx, yy = p_grid
-#                     sampmask[xx[b_grid], yy[b_grid]] |= haloVal
-#                 if firstRun:
-#                     for l in else_thresh:
-#                         b_grid, p_grid = self.he_boolgrid(clusterID, l, lrad, include=include)
-#                         xx, yy = p_grid
-#                         sampmask[xx[b_grid],yy[b_grid]] |= haloVal
-#                 radkey = (lrad, hrad, i)
-#                 sampflag = self.df.masks_2_flags([sampmask], self.flags)
-#                 exposure = np.ma.masked_array(self.df.partial_expo, ~(sampflag[0]).flatten(order='F'))
-#                 expo_size = exposure.sum()
-#                 events = self.one_pix_search([im], sampflag, 1)
-# 
-#                 firstRun = False
-#                 rkeys.append(radkey)
-#                 sflags.append(sampflag)
-#                 pixsize.append(np.sum(sampflag))
-#                 counts.append(events)
-#                 expo.append(expo_size)
-#         
-#         return rkeys, sflags, pixsize, counts, expo
     
     # Create halo radius plot with extra binning for energy of cluster.
     # If -1 is used as a right edge for a bin it is treated as +infinity

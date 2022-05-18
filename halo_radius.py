@@ -66,16 +66,14 @@ print("Proc fits shape:", tr.df.procfits[0].shape)
 plen = len(pix_sizes)
 mlen = len(minos_halorad)
 
-exposure = np.zeros((mlen, plen), dtype=float)
-one_count = np.zeros((mlen, plen), dtype=int)
-pix_count = np.zeros_like(one_count)
-two_1p_count = np.zeros_like(one_count)
-two_2p_count = np.zeros_like(one_count)
-exposure2 = np.zeros((mlen, plen), dtype=float)
-pix_count2 = np.zeros_like(one_count)
+exposure = np.zeros((mlen, plen, 2), dtype=float)
+count = np.zeros((mlen, plen, 8), dtype=int)
+pix = np.zeros_like(exposure)
+
 
 hval = minos_halorad[0].df.maskFlags['haloM']
 mval = minos_halorad[0].df.maskFlags['edgeM']
+bval = minos_halorad[0].df.maskFlags['bleedM']
 hpixval = minos_halorad[0].df.maskFlags['badPixM']
 hcolval = minos_halorad[0].df.maskFlags['badColM']
 
@@ -84,7 +82,6 @@ for q, m in zip(quads, minos_halorad):
     _ = m.df.add_hotpixel(m.df.mfs, hotpix[q], hpixval)
     _ = m.df.add_hotcolmask(m.df.mfs, hotcols[q], hcolval)
     print("Applied hot col and hot pix masks")
-
 
 for i,m in enumerate(minos_halorad):
     print("Working on quadrant", i)
@@ -95,30 +92,46 @@ for i,m in enumerate(minos_halorad):
         _ = m.df.remove_maskval(m.df.mfs, mval) # Clear edge mask
         _ = m.df.add_edgemask(m.df.mfs, mval, ps) # Insert new edge mask
         _ = m.df.remove_maskval(m.df.mfs, hval) # Clear halo mask
-        # _ = m.df.add_halomask(m.df.mfs, m.df.sfs, hval, ps) # Insert new halo mask
         _ = m.df.conv_halomask(m.df.mfs, m.df.sfs, hval, ps)
+
+        _ = m.df.remove_maskval(m.df.mfs, bval)
+        _ = m.df.conv_bleedmask(m.df.mfs, m.df.sfs, bval, 100)
         sflags = m.df.masks_2_flags(m.df.mfs, badFlags)
+
+        _ = m.df.remove_maskval(m.df.mfs, bval)
+        _ = m.df.conv_bleedmask(m.df.mfs, m.df.sfs, bval, 50)
         sflags2 = m.df.masks_2_flags(m.df.mfs, badFlags_2e)
 
-        pix_count[i,j] = np.sum(sflags)
-        exposure[i,j] = np.sum(m.df.trim_exp * sflags)
+        exposure = np.ma.masked_array(m.df.partial_expo, ~sflags.flatten(order='F'))
+        exposure_2 = np.ma.masked_array(m.df.partial_expo, ~sflags2.flatten(order='F'))
 
-        pix_count2[i,j] = np.sum(sflags2)
-        exposure2[i,j] = np.sum(m.df.trim_exp * sflags2)
+        expo_size = np.sum(exposure)
+        expo2_size = np.sum(exposure_2)
+        expos_obj = (expo_size, expo2_size)
+        exposure[i,j,:] += expos_obj
 
-        one_results = m.one_pix_search(m.df.sfs, sflags, 1)
-        two_results = m.one_pix_search(m.df.sfs, sflags2, 2)
-        kale, two2p_results = m.cluster_search(m.df.sfs, sflags2, 2)
-        print("One counts:", two_results)
-        one_count[i,j] = np.sum(one_results)
-        two_1p_count[i,j] = np.sum(two_results)
-        two_2p_count[i,j] = two2p_results
+        shoriz = np.array([[0,0,0],[1,1,1],[0,0,0]])
+        svert = np.array([[0,1,0],[0,1,0],[0,1,0]])
+        sdiag = np.array([[1,0,1],[0,1,0],[1,0,1]])
+        ssolo = np.array([[0,0,0],[0,1,0],[0,0,0]])
+        events = m.one_pix_search(m.df.sfs, sflags, 1)[0]
+        events_2 = m.one_pix_search(m.df.sfs, sflags2, 2)[0]
+        kale, two_e = m.cluster_search(m.df.sfs, sflags2, 2)
+        _, two_eh = m.cluster_search(m.df.sfs, sflags2, 2, shoriz)
+        _, two_ev = m.cluster_search(m.df.sfs, sflags2, 2, svert)
+        _, two_ed = m.cluster_search(m.df.sfs, sflags2, 2, sdiag)
+        _, two_es = m.cluster_search(m.df.sfs, sflags2, 2, ssolo)
+        _, three_e = m.cluster_search(m.df.sfs, sflags2, 3)
+        events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed, two_es, three_e)
+        counts[i,j,:] += events_obj
+        
+        pix1 = np.sum(sampflag)
+        pix2 = np.sum(sampflag_2)
+        pixs_obj = (pix1, pix2)
+        pix[i,j,:] += pixs_obj
+
 
 suffix = '_' + str(enum) + '_' + str(ccdnum)
-np.save('./data/minos3/mod_expos_1e' + suffix, exposure)
-np.save('./data/minos3/mod_count_1e' + suffix, one_count)
-np.save('./data/minos3/mod_pixel_1e' + suffix, pix_count)
-np.save('./data/minos3/mod_count_1pix2e' + suffix, two_1p_count)
-np.save('./data/minos3/mod_count_2pix2e' + suffix, two_2p_count)
-np.save('./data/minos3/mod_expos_2e' + suffix, exposure2)
-np.save('./data/minos3/mod_pixel_2e' + suffix, pix_count2)
+np.save('./data/minos3/trad_expos_1e' + suffix, exposure)
+np.save('./data/minos3/trad_count_1e' + suffix, counts)
+np.save('./data/minos3/trad_pixel_1e' + suffix, pix)
