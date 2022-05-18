@@ -784,14 +784,16 @@ class Analysis:
             shoriz = np.array([[0,0,0],[1,1,1],[0,0,0]])
             svert = np.array([[0,1,0],[0,1,0],[0,1,0]])
             sdiag = np.array([[1,0,1],[0,1,0],[1,0,1]])
+            ssolo = np.array([[0,0,0],[0,1,0],[0,0,0]])
             events = self.one_pix_search([im], sampflag, 1)[0]
             events_2 = self.one_pix_search([im], sampflag_2, 2)[0]
             kale, two_e = self.cluster_search([im], sampflag_2, 2)
             _, two_eh = self.cluster_search([im], sampflag_2, 2, shoriz)
             _, two_ev = self.cluster_search([im], sampflag_2, 2, svert)
             _, two_ed = self.cluster_search([im], sampflag_2, 2, sdiag)
+            _, two_es = self.cluster_search([im], sampflag_2, 2, ssolo)
             _, three_e = self.cluster_search([im], sampflag_2, 3)
-            events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed, three_e)
+            events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed, two_es, three_e)
             
             pix1 = np.sum(sampflag)
             pix2 = np.sum(sampflag_2)
