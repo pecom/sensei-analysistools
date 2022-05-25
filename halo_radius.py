@@ -6,27 +6,41 @@ import sys
 
 
 badFlags = { 'badColM', 'badPixM', 'bleedM', 'crosstalkM', 'edgeM',
-             'extendBleedM', 'fullWellM', 'haloM', 'looseCluM', 
+             'extendBleedM', 'fullWellM', 'haloM',  
              'lowECluM', 'neighborM', 'noisyM', 'serialM'
 }
 
 badFlags_2e = { 'badColM', 'badPixM', 'bleedM', 'crosstalkM', 'edgeM',
-             'extendBleedM', 'fullWellM', 'haloM', 'looseCluM', 
+             'extendBleedM', 'fullWellM', 'haloM',  
              'lowECluM', 'noisyM', 'serialM'
 }
 
 quads = [0,1,2,3]
-# quads = [3]
+quads = [0]
 minos_halorad = []
-# pix_sizes = np.arange(10, 110, 2)
-pix_sizes = np.arange(0,40,1)
+pix_sizes = [0,5,10,15, 60]
+pix_sizes = [30]
+# pix_sizes = np.arange(0,80,1)
 
 ccdnum = int(sys.argv[1])
 enum = int(sys.argv[2])
 
+prfs = ['/data/users/meeg/minos3/proc_corr_proc_skp_moduleC40_41-ssc16_17-lta20_60_TEMP135K-run1_NROW520_NBINROW1_NCOL3200_NBINCOL1_EXPOSURE72000_CLEAR1800_1_250.fits']
+#        '/data/users/meeg/minos3/proc_corr_proc_skp_moduleC40_41-ssc16_17-lta20_60_TEMP135K-run1_NROW520_NBINROW1_NCOL3200_NBINCOL1_EXPOSURE72000_CLEAR1800_1_255.fits',
+#        '/data/users/meeg/minos3/proc_corr_proc_skp_moduleC40_41-ssc16_17-lta20_60_TEMP135K-run1_NROW520_NBINROW1_NCOL3200_NBINCOL1_EXPOSURE72000_CLEAR1800_1_260.fits',
+#        '/data/users/meeg/minos3/proc_corr_proc_skp_moduleC40_41-ssc16_17-lta20_60_TEMP135K-run1_NROW520_NBINROW1_NCOL3200_NBINCOL1_EXPOSURE72000_CLEAR1800_1_265.fits']
+        # '/data/users/meeg/minos3/proc_corr_proc_skp_moduleC40_41-ssc16_17-lta20_60_TEMP135K-run20_NROW520_NBINROW1_NCOL3200_NBINCOL1_EXPOSURE0_CLEAR1800_1_233.fits']
 
-hotcols = np.load(f'./data/badcols_{ccdnum}.npy', allow_pickle=True)
-hotpix = np.load(f'./data/badpix_{ccdnum}.npy', allow_pickle=True)
+
+mrfs = ['/data/users/meeg/minos3/cuts_new/mask_corr_proc_skp_moduleC40_41-ssc16_17-lta20_60_TEMP135K-run1_NROW520_NBINROW1_NCOL3200_NBINCOL1_EXPOSURE72000_CLEAR1800_1_250.fits']
+#          '/data/users/meeg/minos3/cuts_new/mask_corr_proc_skp_moduleC40_41-ssc16_17-lta20_60_TEMP135K-run1_NROW520_NBINROW1_NCOL3200_NBINCOL1_EXPOSURE72000_CLEAR1800_1_255.fits',
+#          '/data/users/meeg/minos3/cuts_new/mask_corr_proc_skp_moduleC40_41-ssc16_17-lta20_60_TEMP135K-run1_NROW520_NBINROW1_NCOL3200_NBINCOL1_EXPOSURE72000_CLEAR1800_1_260.fits',
+#          '/data/users/meeg/minos3/cuts_new/mask_corr_proc_skp_moduleC40_41-ssc16_17-lta20_60_TEMP135K-run1_NROW520_NBINROW1_NCOL3200_NBINCOL1_EXPOSURE72000_CLEAR1800_1_265.fits']
+
+crfs = ['/data/users/meeg/minos3/cal_proc_corr_proc_skp_moduleC40_41-ssc16_17-lta20_60_TEMP135K-run1_NROW520_NBINROW1_NCOL3200_NBINCOL1_EXPOSURE72000_CLEAR1800_1_250.xml']
+
+hotcols = np.load(f'../data/badcols_{ccdnum}.npy', allow_pickle=True)
+hotpix = np.load(f'../data/badpix_{ccdnum}.npy', allow_pickle=True)
 
 print("Running on ccd: %i and exposure: %i" % (ccdnum, enum))
 
@@ -47,41 +61,49 @@ for q, tr in zip(quads, minos_halorad):
     }
     tr.df.set_bp(newBp)
     tr.df.set_minos3()
-    prf = 'proc_corr_proc_skp.*EXPOSURE%i.*_%i_.*.fits' % (enum, ccdnum)
-    mrf = 'mask_corr_proc_skp.*EXPOSURE%i.*_%i_.*.fits' % (enum, ccdnum)
-    tr.df.get_fits('/data/users/meeg/minos3/', prf)
-    tr.df.get_maskfits('/data/users/meeg/minos3/cuts_new/', mrf)
-    tr.df.proc_convert()
+#     prf = 'proc_corr_proc_skp.*EXPOSURE%i.*_%i_.*.fits' % (enum, ccdnum)
+#     mrf = 'mask_corr_proc_skp.*EXPOSURE%i.*_%i_.*.fits' % (enum, ccdnum)
+#     tr.df.get_fits('/data/users/meeg/minos3/', prf)
+#     tr.df.get_maskfits('/data/users/meeg/minos3/cuts_new/', mrf)
+    tr.df.add_procs(prfs)
+    for ix,iy in zip([165,220,244],[1179,2189,143]):
+        print("Pixels of interest:", tr.df.procfits[0][ix+1,iy+8])
+    tr.df.add_masks(mrfs)
+    tr.df.add_cal(crfs)
+#    tr.df.proc_convert()
+    tr.df.cal_convert()
     tr.df.mfit_convert()
+    hpixval = tr.df.maskFlags['badPixM']
+    hcolval = tr.df.maskFlags['badColM']
+    _ = tr.df.add_hotpixel(tr.df.mfs_full, hotpix[q], hpixval)
+    _ = tr.df.add_hotcolmask(tr.df.mfs_full, hotcols[q], hcolval)
     ebase = enum
     tr.df.make_exp(520, 3200, ebase)
     tr.df.trim_all( 1, 513, 8, 3080)
     tr.df.trim_exp = tr.df.full_exp2d[1:513, 8:3080]
 
-print("Mask fits shape:", tr.df.maskfits[0].shape)
-print("Proc fits shape:", tr.df.procfits[0].shape)
+for ix,iy in zip([165,220,244],[1179,2189,143]):
+    print("Pixels of interest:", minos_halorad[0].df.sfs[0][ix,iy])
+
+print("MFS shape:", tr.df.mfs[0].shape)
+print("SFS fits shape:", tr.df.sfs[0].shape)
 
 
 
 plen = len(pix_sizes)
 mlen = len(minos_halorad)
 
-exposure = np.zeros((mlen, plen, 2), dtype=float)
-count = np.zeros((mlen, plen, 8), dtype=int)
-pix = np.zeros_like(exposure)
+expos = np.zeros((mlen, plen, 2))
+count = np.zeros((mlen, plen, 9))
+pix = np.zeros((mlen, plen, 2))
 
 
 hval = minos_halorad[0].df.maskFlags['haloM']
 mval = minos_halorad[0].df.maskFlags['edgeM']
 bval = minos_halorad[0].df.maskFlags['bleedM']
-hpixval = minos_halorad[0].df.maskFlags['badPixM']
-hcolval = minos_halorad[0].df.maskFlags['badColM']
 
-# apply hot column and hot pixel masks:
-for q, m in zip(quads, minos_halorad):
-    _ = m.df.add_hotpixel(m.df.mfs, hotpix[q], hpixval)
-    _ = m.df.add_hotcolmask(m.df.mfs, hotcols[q], hcolval)
-    print("Applied hot col and hot pix masks")
+
+
 
 for i,m in enumerate(minos_halorad):
     print("Working on quadrant", i)
@@ -91,6 +113,8 @@ for i,m in enumerate(minos_halorad):
         print("Working on pix size:", ps)
         _ = m.df.remove_maskval(m.df.mfs, mval) # Clear edge mask
         _ = m.df.add_edgemask(m.df.mfs, mval, ps) # Insert new edge mask
+        mspec = m.df.mfs[0][293,3011]
+        print("Edge mask?", (mspec & mval) == mval)
         _ = m.df.remove_maskval(m.df.mfs, hval) # Clear halo mask
         _ = m.df.conv_halomask(m.df.mfs, m.df.sfs, hval, ps)
 
@@ -102,36 +126,46 @@ for i,m in enumerate(minos_halorad):
         _ = m.df.conv_bleedmask(m.df.mfs, m.df.sfs, bval, 50)
         sflags2 = m.df.masks_2_flags(m.df.mfs, badFlags_2e)
 
-        exposure = np.ma.masked_array(m.df.partial_expo, ~sflags.flatten(order='F'))
-        exposure_2 = np.ma.masked_array(m.df.partial_expo, ~sflags2.flatten(order='F'))
+        exposure = [np.sum(m.df.partial_expo*sf) for sf in sflags]
+        exposure_2 = [np.sum(m.df.partial_expo*sf) for sf in sflags2]
+        expos_obj = (np.sum(exposure), np.sum(exposure_2))
+        expos[i,j,:] += expos_obj
 
-        expo_size = np.sum(exposure)
-        expo2_size = np.sum(exposure_2)
-        expos_obj = (expo_size, expo2_size)
-        exposure[i,j,:] += expos_obj
+        pix1 = np.sum(sflags)
+        pix2 = np.sum(sflags2)
+        pixs_obj = (pix1, pix2)
+        pix[i,j,:] += pixs_obj
 
         shoriz = np.array([[0,0,0],[1,1,1],[0,0,0]])
         svert = np.array([[0,1,0],[0,1,0],[0,1,0]])
         sdiag = np.array([[1,0,1],[0,1,0],[1,0,1]])
         ssolo = np.array([[0,0,0],[0,1,0],[0,0,0]])
-        events = m.one_pix_search(m.df.sfs, sflags, 1)[0]
-        events_2 = m.one_pix_search(m.df.sfs, sflags2, 2)[0]
+        events = np.sum(m.one_pix_search(m.df.sfs, sflags, 1))
+
+#        for ix,iy in zip([165,220,244],[1179,2189,143]):
+#            print("Pixels of interest:", m.df.sfs[0][ix,iy], m.df.mfs[0][ix,iy])
+
+        mone = m.df.sfs[0] * sflags[0]
+        gmone = np.where(mone==1)
+        # print("ONE E:", [(x,y) for x,y in zip(*gmone)])
+        print(gmone)
+
+        events_2 = np.sum(m.one_pix_search(m.df.sfs, sflags2, 2))
+        _, one_clu = m.cluster_search(m.df.sfs, sflags, 1)
         kale, two_e = m.cluster_search(m.df.sfs, sflags2, 2)
         _, two_eh = m.cluster_search(m.df.sfs, sflags2, 2, shoriz)
         _, two_ev = m.cluster_search(m.df.sfs, sflags2, 2, svert)
         _, two_ed = m.cluster_search(m.df.sfs, sflags2, 2, sdiag)
         _, two_es = m.cluster_search(m.df.sfs, sflags2, 2, ssolo)
         _, three_e = m.cluster_search(m.df.sfs, sflags2, 3)
-        events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed, two_es, three_e)
-        counts[i,j,:] += events_obj
-        
-        pix1 = np.sum(sampflag)
-        pix2 = np.sum(sampflag_2)
-        pixs_obj = (pix1, pix2)
-        pix[i,j,:] += pixs_obj
+        events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed, two_es, three_e, one_clu)
+        count[i,j,:] += events_obj
+
+
+print("Counts ", count)  
 
 
 suffix = '_' + str(enum) + '_' + str(ccdnum)
-np.save('./data/minos3/trad_expos_1e' + suffix, exposure)
-np.save('./data/minos3/trad_count_1e' + suffix, counts)
-np.save('./data/minos3/trad_pixel_1e' + suffix, pix)
+# np.save('./data/minos3/trad_expos_1e' + suffix, expos)
+# np.save('./data/minos3/trad_count_1e' + suffix, counts)
+# np.save('./data/minos3/trad_pixel_1e' + suffix, pix)

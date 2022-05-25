@@ -708,6 +708,7 @@ class Analysis:
         energyTots = labeled_comprehension(im, clusterID, lbls, lambda x : np.sum(x)*self.df.e2ev, float, 0)
         haloVal = self.df.maskFlags['haloM']
         edgeVal = self.df.maskFlags['edgeM']
+        bleedVal = self.df.maskFlags['bleedM']
 
         _ = self.df.remove_maskval([sampmask], haloVal)
 
@@ -723,6 +724,7 @@ class Analysis:
         for r in rads:
             _ = self.df.remove_maskval([sampmask], haloVal)
             _ = self.df.remove_maskval([sampmask], edgeVal)
+            _ = self.df.remove_maskval([sampmask], bleedVal)
             hrad = r
             temp = np.zeros_like(clusterID)
 
@@ -731,7 +733,12 @@ class Analysis:
 
             _ = self.df.add_edgemask([sampmask], edgeVal, r)
 
+            _ = self.df.remove_maskval([sampmask], bleedVal)
+            _ = self.df.conv_bleedmask([sampmask], [im], bleedVal, 100)
             sampflag = self.df.masks_2_flags([sampmask], self.flags)
+
+            _ = self.df.remove_maskval([sampmask], bleedVal)
+            _ = self.df.conv_bleedmask([sampmask], [im], bleedVal, 50)
             f2 = self.flags.copy()
             f2.discard('neighborM')
             sampflag_2 = self.df.masks_2_flags([sampmask], f2)
