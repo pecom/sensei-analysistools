@@ -19,7 +19,7 @@ quads = [0,1,2,3]
 quads = [0]
 minos_halorad = []
 pix_sizes = [0,5,10,15, 60]
-pix_sizes = [30]
+pix_sizes = [5]
 # pix_sizes = np.arange(0,80,1)
 
 ccdnum = int(sys.argv[1])
@@ -48,6 +48,10 @@ for q in quads:
     cr = ac.Analysis(q,  1, badFlags)
     minos_halorad.append(cr)
 
+bxs = [ 13, 220, 478, 490]
+bys = [ 793, 2189, 1842, 2683]
+
+
 for q, tr in zip(quads, minos_halorad):
         #     tr.df.get_samplefiles('../AnalysisTools/DanielAnalysis/minos3data/', "valuesE_1.*quad"+str(q))€
     print("On quadrant: ", q)
@@ -61,17 +65,17 @@ for q, tr in zip(quads, minos_halorad):
     }
     tr.df.set_bp(newBp)
     tr.df.set_minos3()
-#     prf = 'proc_corr_proc_skp.*EXPOSURE%i.*_%i_.*.fits' % (enum, ccdnum)
-#     mrf = 'mask_corr_proc_skp.*EXPOSURE%i.*_%i_.*.fits' % (enum, ccdnum)
-#     tr.df.get_fits('/data/users/meeg/minos3/', prf)
-#     tr.df.get_maskfits('/data/users/meeg/minos3/cuts_new/', mrf)
-    tr.df.add_procs(prfs)
-    for ix,iy in zip([165,220,244],[1179,2189,143]):
-        print("Pixels of interest:", tr.df.procfits[0][ix+1,iy+8])
-    tr.df.add_masks(mrfs)
-    tr.df.add_cal(crfs)
-#    tr.df.proc_convert()
-    tr.df.cal_convert()
+    prf = 'proc_corr_proc_skp.*EXPOSURE%i.*_%i_.*.fits' % (enum, ccdnum)
+    mrf = 'mask_corr_proc_skp.*EXPOSURE%i.*_%i_.*.fits' % (enum, ccdnum)
+    tr.df.get_fits('/data/users/meeg/minos3/', prf)
+    tr.df.get_maskfits('/data/users/meeg/minos3/cuts_new/', mrf)
+#    tr.df.add_procs(prfs)
+#    for ix,iy in zip(bxs, bys):
+#        print("Pixels of interest:", tr.df.procfits[0][ix+1,iy+8])
+#    tr.df.add_masks(mrfs)
+#    tr.df.add_cal(crfs)
+    tr.df.proc_convert()
+#    tr.df.cal_convert()
     tr.df.mfit_convert()
     hpixval = tr.df.maskFlags['badPixM']
     hcolval = tr.df.maskFlags['badColM']
@@ -82,9 +86,6 @@ for q, tr in zip(quads, minos_halorad):
     tr.df.trim_all( 1, 513, 8, 3080)
     tr.df.trim_exp = tr.df.full_exp2d[1:513, 8:3080]
 
-for ix,iy in zip([165,220,244],[1179,2189,143]):
-    print("Pixels of interest:", minos_halorad[0].df.sfs[0][ix,iy])
-
 print("MFS shape:", tr.df.mfs[0].shape)
 print("SFS fits shape:", tr.df.sfs[0].shape)
 
@@ -94,7 +95,7 @@ plen = len(pix_sizes)
 mlen = len(minos_halorad)
 
 expos = np.zeros((mlen, plen, 2))
-count = np.zeros((mlen, plen, 8))
+count = np.zeros((mlen, plen, 9))
 pix = np.zeros((mlen, plen, 2))
 
 
@@ -114,7 +115,6 @@ for i,m in enumerate(minos_halorad):
         _ = m.df.remove_maskval(m.df.mfs, mval) # Clear edge mask
         _ = m.df.add_edgemask(m.df.mfs, mval, ps) # Insert new edge mask
         mspec = m.df.mfs[0][293,3011]
-        print("Edge mask?", (mspec & mval) == mval)
         _ = m.df.remove_maskval(m.df.mfs, hval) # Clear halo mask
         _ = m.df.conv_halomask(m.df.mfs, m.df.sfs, hval, ps)
 
@@ -142,24 +142,23 @@ for i,m in enumerate(minos_halorad):
         ssolo = np.array([[0,0,0],[0,1,0],[0,0,0]])
         events = np.sum(m.one_pix_search(m.df.sfs, sflags, 1))
 
-#        for ix,iy in zip([165,220,244],[1179,2189,143]):
+#        for ix,iy in zip(bxs, bys):
 #            print("Pixels of interest:", m.df.sfs[0][ix,iy], m.df.mfs[0][ix,iy])
 
-        # mone = m.df.sfs[0] * sflags[0]
-        # gmone = np.where(mone==1)
-        # # print("ONE E:", [(x,y) for x,y in zip(*gmone)])
+        mone = m.df.sfs[0] * sflags[0]
+        gmone = np.where(mone==1)
+        # print("ONE E:", [(x,y) for x,y in zip(*gmone)])
         # print(gmone)
 
         events_2 = np.sum(m.one_pix_search(m.df.sfs, sflags2, 2))
-        # _, one_clu = m.cluster_search(m.df.sfs, sflags, 1)
+        _, one_clu = m.cluster_search(m.df.sfs, sflags, 1)
         kale, two_e = m.cluster_search(m.df.sfs, sflags2, 2)
-        # _, two_eh = m.cluster_search(m.df.sfs, sflags2, 2, shoriz)
-        # _, two_ev = m.cluster_search(m.df.sfs, sflags2, 2, svert)
-        # _, two_ed = m.cluster_search(m.df.sfs, sflags2, 2, sdiag)
+        _, two_eh = m.cluster_search(m.df.sfs, sflags2, 2, shoriz)
+        _, two_ev = m.cluster_search(m.df.sfs, sflags2, 2, svert)
+        _, two_ed = m.cluster_search(m.df.sfs, sflags2, 2, sdiag)
         _, two_es = m.cluster_search(m.df.sfs, sflags2, 2, ssolo)
         _, three_e = m.cluster_search(m.df.sfs, sflags2, 3)
-        # events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed, two_es, three_e, one_clu)
-        events_obj = (events,0, two_e, 0, 0, 0, two_es, three_e)
+        events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed, two_es, three_e, one_clu)
         count[i,j,:] += events_obj
 
 
