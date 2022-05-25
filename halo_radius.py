@@ -94,7 +94,7 @@ plen = len(pix_sizes)
 mlen = len(minos_halorad)
 
 expos = np.zeros((mlen, plen, 2))
-count = np.zeros((mlen, plen, 9))
+count = np.zeros((mlen, plen, 8))
 pix = np.zeros((mlen, plen, 2))
 
 
@@ -145,20 +145,21 @@ for i,m in enumerate(minos_halorad):
 #        for ix,iy in zip([165,220,244],[1179,2189,143]):
 #            print("Pixels of interest:", m.df.sfs[0][ix,iy], m.df.mfs[0][ix,iy])
 
-        mone = m.df.sfs[0] * sflags[0]
-        gmone = np.where(mone==1)
-        # print("ONE E:", [(x,y) for x,y in zip(*gmone)])
-        print(gmone)
+        # mone = m.df.sfs[0] * sflags[0]
+        # gmone = np.where(mone==1)
+        # # print("ONE E:", [(x,y) for x,y in zip(*gmone)])
+        # print(gmone)
 
         events_2 = np.sum(m.one_pix_search(m.df.sfs, sflags2, 2))
-        _, one_clu = m.cluster_search(m.df.sfs, sflags, 1)
+        # _, one_clu = m.cluster_search(m.df.sfs, sflags, 1)
         kale, two_e = m.cluster_search(m.df.sfs, sflags2, 2)
-        _, two_eh = m.cluster_search(m.df.sfs, sflags2, 2, shoriz)
-        _, two_ev = m.cluster_search(m.df.sfs, sflags2, 2, svert)
-        _, two_ed = m.cluster_search(m.df.sfs, sflags2, 2, sdiag)
+        # _, two_eh = m.cluster_search(m.df.sfs, sflags2, 2, shoriz)
+        # _, two_ev = m.cluster_search(m.df.sfs, sflags2, 2, svert)
+        # _, two_ed = m.cluster_search(m.df.sfs, sflags2, 2, sdiag)
         _, two_es = m.cluster_search(m.df.sfs, sflags2, 2, ssolo)
         _, three_e = m.cluster_search(m.df.sfs, sflags2, 3)
-        events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed, two_es, three_e, one_clu)
+        # events_obj = (events,events_2, two_e, two_eh, two_ev, two_ed, two_es, three_e, one_clu)
+        events_obj = (events,0, two_e, 0, 0, 0, two_es, three_e)
         count[i,j,:] += events_obj
 
 
