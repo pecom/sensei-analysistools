@@ -611,7 +611,7 @@ class Analysis:
     
     # Create halo radius plot with extra binning for energy of cluster.
     # Only 2 bins allowed!
-    def conv_cherenkov_low(self, im, mk, bins, rads, lowrad, include=True):
+    def conv_cherenkov_low(self, im, mk, bins, rads, lowrad, include=True, verbose=False):
         
         pixels = []
         expos = []
@@ -623,6 +623,7 @@ class Analysis:
         energyTots = labeled_comprehension(im, clusterID, lbls, lambda x : np.sum(x)*self.df.e2ev, float, 0)
         haloVal = self.df.maskFlags['haloM']
         edgeVal = self.df.maskFlags['edgeM']
+        bleedVal = self.df.maskFlags['bleedM']
 
         bin_pixels = []
         bin_expos = []
@@ -664,11 +665,21 @@ class Analysis:
             sampmask[highHalo] |= haloVal
 
             _ = self.df.add_edgemask([sampmask], edgeVal, r)
-
+            _ = self.df.remove_maskval([sampmask], bleedVal)
+            _ = self.df.conv_bleedmask([sampmask], [im], bleedVal, 100)
             sampflag = self.df.masks_2_flags([sampmask], self.flags)
+
+            _ = self.df.remove_maskval([sampmask], bleedVal)
+            _ = self.df.conv_bleedmask([sampmask], [im], bleedVal, 50)
             f2 = self.flags.copy()
             f2.discard('neighborM')
             sampflag_2 = self.df.masks_2_flags([sampmask], f2)
+
+            if verbose:
+                gmone = im*sampflag[0]
+                print('Where gmone:', np.where(gmone==1))
+                # print("mask:", sampmask[41, 39], sampmask[39,41])
+
 
             exposure = np.ma.masked_array(self.df.partial_expo, ~(sampflag[0]).flatten(order='F'))
             exposure_2 = np.ma.masked_array(self.df.partial_expo, ~(sampflag_2[0]).flatten(order='F'))
@@ -680,7 +691,7 @@ class Analysis:
             events_2 = self.one_pix_search([im], sampflag_2, 2)[0]
             _, two_e = self.cluster_search([im], sampflag_2, 2)
             _, three_e = self.cluster_search([im], sampflag_2, 3)
-            events_obj = (events,events_2, two_e, three_e)
+            events_obj = (events,0, two_e, three_e)
             
             pix1 = np.sum(sampflag)
             pix2 = np.sum(sampflag_2)
@@ -696,7 +707,7 @@ class Analysis:
         
         return pixels, counts, expos
 
-    def cluster_halos(self, im, mk, rads, ener_thresh=380, include=True):
+    def cluster_halos(self, im, mk, rads, ener_thresh=380, include=True, verbose=False):
         
         pixels = []
         expos = []
@@ -755,6 +766,12 @@ class Analysis:
             sdiag = np.array([[1,0,1],[0,1,0],[1,0,1]])
             ssolo = np.array([[0,0,0],[0,1,0],[0,0,0]])
             events = self.one_pix_search([im], sampflag, 1)[0]
+            
+            if verbose:
+                gmone = im*sampflag[0]
+                print('Where gmone:', np.where(gmone==1))
+                print("mask:", sampmask[41, 39], sampmask[39,41])
+
             events_2 = self.one_pix_search([im], sampflag_2, 2)[0]
             kale, two_e = self.cluster_search([im], sampflag_2, 2)
             _, two_eh = self.cluster_search([im], sampflag_2, 2, shoriz)
