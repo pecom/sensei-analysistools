@@ -798,13 +798,39 @@ class Analysis:
     def create_errors(self, counts, sig):
         count_errs = np.zeros((2, len(counts)))
         for i, n in enumerate(counts):
-            if n < 20:
+            if n < 30:
                 ci = np.abs(astrostats.poisson_conf_interval(n, interval='frequentist-confidence',sigma=sig) - n)
             else:
                 ci = [np.sqrt(n)*sig]*2
             count_errs[0,i] = ci[0]
             count_errs[1,i] = ci[1]
         return count_errs
+
+
+
+    # Calculate the upper limits given counts and percentage
+    def create_upperlimit(self, counts, perc=.90):
+        count_UL = np.zeros(len(counts))
+        norm_perc = perc + (1-perc)/2
+        sig = stats.norm.ppf(norm_perc, 0, 1)
+
+        # Gamma function for Poisson upper limit calculations
+        gamma = lambda k, ts: ts**k * np.exp(-ts)
+        tmax = 50
+        deltaT = .01
+        ts1 = np.arange(0,tmax, deltaT)
+        for i,k in enumerate(counts):
+            if k > 30:
+                h1 = ((sig + np.sqrt(sig**2 + 4*k))/2)**2
+            else:
+                g1 = gamma(k, ts1)
+                rhs = np.cumsum(g1 * deltaT)
+                lhs = perc * np.math.factorial(k)
+                h1 = ts1[np.argmin(np.abs(rhs - lhs)) + 1]
+            count_UL[i] = h1
+
+        return count_UL
+        
     
     # Count the number of 1e- events in a set of rows
     def proper_row_rate(self, ims, mks, binsize, start=1, stop=0):
