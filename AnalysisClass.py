@@ -492,9 +492,8 @@ class Analysis:
         ssolo = -1*np.ones((3,3))
         ssolo[1,1] = 1
         
-        stypes = [svert, shori, sdiag, ssolo]
+        stypes = [shori, svert, sdiag, ssolo]
         sfin = [2,2,2,1] # What should the convolution give us?
-        snames = ["Vertical", "Horizontal", "Diagonal", "Solo"]
 
         schannel = np.zeros((flen, 5))
         for sampmap, fmask, nid in zip(files, masks, np.arange(flen)):
