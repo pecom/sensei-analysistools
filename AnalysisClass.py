@@ -507,8 +507,8 @@ class Analysis:
                 if np.sum(mm)==2:
                     schannel[nid, 0] +=  1
                 fmap += mm
-            for i,s in enumerate(stypes):
-                conved_fmap = signal.convolve2d(fmap, s, mode='same')
+            for i,st in enumerate(stypes):
+                conved_fmap = signal.convolve2d(fmap, st, mode='same')
                 channel_count = np.sum(conved_fmap == 2)/2
                 schannel[nid, i+1] = channel_count
         return schannel 
