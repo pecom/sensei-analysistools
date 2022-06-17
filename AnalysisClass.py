@@ -502,6 +502,8 @@ class Analysis:
             nclusts = np.where(clusterTots==2)[0] # Where do we have "count" # of electrons
             cleanclusts = nclusts[[~np.any(fmask[(clusterID==tc)] == False) for tc in nclusts]]
             multmaps = np.array([(clusterID==tc) * fmask for tc in cleanclusts])
+            if len(multmaps) == 0:
+                return schannel
             fmap = np.zeros_like(multmaps[0])
             for mm in multmaps:
                 if np.sum(mm)==2:
@@ -876,7 +878,7 @@ class Analysis:
         sig = stats.norm.ppf(norm_perc, 0, 1)
 
         if self.poisson is not None:
-            continue
+            pass
         else:
             poiss = {}
             for i in range(31):
