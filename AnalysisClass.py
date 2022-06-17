@@ -261,6 +261,27 @@ class DataFiles:
             m[conved_mask] |= haloval
         return masks
     
+    # Add a halo mask using convolution to make life easier and faster!
+    def cluster_halomask(self, masks, images, haloval, rad):
+        numero = np.arange(len(masks))
+        imsize = images[0].shape
+        tfilt = self.get_genfilt(rad).astype(int)
+        for m, im, n in zip(masks, images, numero):
+            [clusterID,numClu] = label(im, self.s)
+            lbls = np.arange(numClu+1)
+            energyTots = labeled_comprehension(im, clusterID, lbls, lambda x : np.sum(x), float, 0)
+            good_energy = (energyTots >= 100)
+            good_thresh = lbls[good_energy]
+            good_mask = np.zeros_like(clusterID).astype(bool)
+            for g in good_thresh:
+                good_mask += (clusterID == g)
+            good_mask = good_mask.astype(int) * 200
+
+            halo_pos = (good_mask > 100)
+            conved_mask = np.round(signal.fftconvolve(halo_pos, tfilt, mode='same')).astype(bool)
+            m[conved_mask] |= haloval
+        return masks
+
     # Add a bleed mask using convolution to make life easier and faster!
     # Rad should be 100 for 1e- analysis and 50 for 2e- analysis
     def conv_bleedmask(self, masks, images, bleedval, rad):
