@@ -482,7 +482,37 @@ class Analysis:
                 kpixarr = np.array([np.sum(mm)==(k+1) for mm in multmaps])
                 subcounts[k, nid] = np.sum(kpixarr)
         return subcounts, np.sum(subcounts) 
-    
+
+    def channel_search(self, files, masks):
+        flen = len(files)
+        s = np.ones((3,3))
+        svert = np.array([[0,1,0],[0,1,0],[0,1,0]])
+        shori = np.array([[0,0,0], [1,1,1], [0,0,0]])
+        sdiag = np.array([[1,0,1],[0,1,0],[1,0,1]])
+        ssolo = np.array([[0,0,0],[0,1,0],[0,0,0]])
+        stypes = [svert, shori, sdiag, ssolo]
+        snames = ["Vertical", "Horizontal", "Diagonal", "Solo"]
+
+        schannel = np.zeros((flen, 5))
+        for sampmap, fmask, nid in zip(files, masks, np.arange(flen)):
+            # Standard use label to identify clusters
+            [clusterID,numClu] = label(sampmap, s)
+            lbls = np.arange(numClu+1)
+            clusterTots = labeled_comprehension(sampmap, clusterID, lbls, np.sum, int, 0) # Get the number of electrons in each cluster
+            nclusts = np.where(clusterTots==2)[0] # Where do we have "count" # of electrons
+            cleanclusts = nclusts[[~np.any(fmask[(clusterID==tc)] == False) for tc in nclusts]]
+            multmaps = np.array([(clusterID==tc) * fmask for tc in cleanclusts])
+            fmap = np.zeros_like(multmaps[0])
+            for mm in multmaps:
+                if np.sum(mm)==2:
+                    schannel[nid, 0] +=  1
+                fmap += mm
+            for i,s in enumerate(stypes):
+                conved_fmap = signal.convolve2d(fmap, s, mode='same')
+                channel_count = np.sum(conved_fmap == 2)/2
+                schannel[nid, i+1] = channel_count
+        return schannel 
+            
     # Add a halo mask to each pixel in a cluster
     def he_boolgrid(self, cluID, l, radius, include=True):
         clust_pixs = np.where(cluID==l)
