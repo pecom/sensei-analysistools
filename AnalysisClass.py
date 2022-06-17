@@ -489,8 +489,11 @@ class Analysis:
         svert = np.array([[0,1,0],[0,1,0],[0,1,0]])
         shori = np.array([[0,0,0], [1,1,1], [0,0,0]])
         sdiag = np.array([[1,0,1],[0,1,0],[1,0,1]])
-        ssolo = np.array([[0,0,0],[0,1,0],[0,0,0]])
+        ssolo = -1*np.ones((3,3))
+        ssolo[1,1] = 1
+        
         stypes = [svert, shori, sdiag, ssolo]
+        sfin = [2,2,2,1] # What should the convolution give us?
         snames = ["Vertical", "Horizontal", "Diagonal", "Solo"]
 
         schannel = np.zeros((flen, 5))
@@ -503,16 +506,19 @@ class Analysis:
             cleanclusts = nclusts[[~np.any(fmask[(clusterID==tc)] == False) for tc in nclusts]]
             multmaps = np.array([(clusterID==tc) * fmask for tc in cleanclusts])
             if len(multmaps) == 0:
-                return schannel
+                continue
             fmap = np.zeros_like(multmaps[0])
             for mm in multmaps:
-                if np.sum(mm)==2:
+                if np.sum(mm)>0:
                     schannel[nid, 0] +=  1
                 fmap += mm
             for i,st in enumerate(stypes):
                 conved_fmap = signal.convolve2d(fmap, st, mode='same')
-                channel_count = np.sum(conved_fmap == 2)/2
-                schannel[nid, i+1] = channel_count
+                if sfin[i]==1:
+                    channel_count = np.sum(conved_fmap == 1)
+                else:
+                    channel_count = np.sum(conved_fmap == 2)/2
+                schannel[nid, i+1] += channel_count
         return schannel 
             
     # Add a halo mask to each pixel in a cluster
