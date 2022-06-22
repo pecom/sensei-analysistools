@@ -483,6 +483,20 @@ class Analysis:
                 subcounts[k, nid] = np.sum(kpixarr)
         return subcounts, np.sum(subcounts) 
 
+    # Faster search looking for Ne- (count) in a contiguous cluster
+    def cluster_fast(self, files, masks, count, s=np.array([[1, 1, 1], [1,1,1], [1,1,1]])):
+        flen = len(files)
+        counts = np.zeros(flen)
+        for sampmap, fmask, nid in zip(files, masks, np.arange(flen)):
+            # Standard use label to identify clusters
+            [clusterID,numClu] = label(sampmap, s)
+            lbls = np.arange(numClu+1)
+            clusterTots = labeled_comprehension(sampmap, clusterID, lbls, np.sum, int, 0) # Get the number of electrons in each cluster
+            nclusts = np.where(clusterTots==count)[0] # Where do we have "count" # of electrons
+            cleanclusts = nclusts[[~np.any(fmask[(clusterID==tc)] == False) for tc in nclusts]]
+            counts[nid] = len(cleanclusts)
+        return counts
+
     def channel_search(self, files, masks):
         flen = len(files)
         s = np.ones((3,3))
