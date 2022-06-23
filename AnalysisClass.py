@@ -81,17 +81,22 @@ class DataFiles:
     def add_cal(self, cals):
         modquad = self.quadrant + 1
         self.cal_gains = []
+        self.cal_offsets = []
         for cx in cals:
             gain = 0
+            offset = 100
             rx = ET.parse(cx).getroot()
             for rp in rx[0]:
                 if 'num' in rp.attrib:
                     if int(rp.attrib['num']) == modquad:
                         gain = float(rp.attrib['gain'])
+                        offset = float(rp.attrib['zero'])
             if gain==0:
-                print("Using default gain for quadrant %i of file %s" % (self.quadrant,cx))
                 gain = float(rx[0][0].attrib['gain'])
+                print("Using default gain for quadrant %i of file %s: %f" % (self.quadrant,cx,gain))
+                offset = 0
             self.cal_gains.append(gain)
+            self.cal_offsets.append(offset)
         self.cal_names = cals
 
     # Wrapper function to get proc files using regex search
@@ -140,8 +145,8 @@ class DataFiles:
         binned_list = [self.binParams["bottomCut"], self.binParams["zeroOneCut"],
                        self.binParams["oneTwoCut"], self.binParams["twoThreeCut"]]
 
-        for g,gain in zip(self.procfits, self.cal_gains):
-            ef0 = self.electronize(g/gain, binned_list, self.binParams["zeroOneCut"])
+        for g,gain,off0 in zip(self.procfits, self.cal_gains, self.cal_offsets):
+            ef0 = self.electronize((g - off0)/gain, binned_list, self.binParams["zeroOneCut"])
             ef0[ef0==-1] = 0
             self.sfs_full.append(ef0.astype(int))
         
