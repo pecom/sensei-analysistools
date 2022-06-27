@@ -238,10 +238,11 @@ class DataFiles:
         return tf
 
     def get_bleedfilt(self, r):
-        ks = 2*r+1
+        modr = r-1
+        ks = 2*modr+1
         kale = np.zeros((ks,ks))
-        kale[r:, r] = 1
-        kale[r, r:] = 1
+        kale[modr:, modr] = 1
+        kale[modr, modr:] = 1
         return kale
     
     # Add a halo mask. Note that this one needs the science files (images) as an argument!
