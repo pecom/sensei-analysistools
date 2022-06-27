@@ -234,7 +234,7 @@ class DataFiles:
     # Helper function to make circles for the Halo Radius mask
     def get_genfilt(self, r):
         xx,yy = np.mgrid[-r:r+1, -r:r+1]
-        tf = ((xx**2 + yy**2) <= r**2)
+        tf = ((xx**2 + yy**2) < r**2)
         return tf
 
     def get_bleedfilt(self, r):
