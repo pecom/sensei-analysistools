@@ -884,7 +884,7 @@ class Analysis:
             count_errs[1,i] = ci[1]
         return count_errs
 
-    def poiss_upperlimit(count, perc=.9):
+    def poiss_upperlimit(self, count, perc=.9):
         # Gamma function for Poisson upper limit calculations
         gamma = lambda k, ts: ts**k * np.exp(-ts)
         tmax = 50
@@ -899,21 +899,18 @@ class Analysis:
     # Calculate the upper limits given counts and percentage
     def create_upperlimit(self, counts, perc=.90):
         count_UL = np.zeros(len(counts))
-        norm_perc = perc + (1-perc)/2
-        sig = stats.norm.ppf(norm_perc, 0, 1)
+        sig = stats.norm.ppf(perc, 0, 1)
 
-        if self.poisson is not None:
-            pass
-        else:
+        if not hasattr(self, 'poisson'):
             poiss = {}
             for i in range(31):
-                poiss[i] = poiss_upperlimit(i)
+                poiss[i] = self.poiss_upperlimit(i)
             self.poisson = poiss
         for i,k in enumerate(counts):
             if k > 30:
                 h1 = ((sig + np.sqrt(sig**2 + 4*k))/2)**2
             else:
-                h1 = poiss[k]
+                h1 = self.poisson[k]
             count_UL[i] = h1
 
         return count_UL
