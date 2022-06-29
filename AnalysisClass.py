@@ -300,6 +300,24 @@ class DataFiles:
             m[conved_mask] |= bleedval
         return masks
 
+    # Adding a bleeding edge feature.
+    def bleededge(self, masks, images, bleedval):
+        numero = np.arange(len(masks))
+        imsize = images[0].shape
+        for m, im, n in zip(masks, images, numero):
+            if self.ccd == 1 and self.quadrant == 1:
+                hee_i, hee_j = np.where(im > 100)
+                hfilt = (hee_j > 1784)
+                for i,j in zip(hee_i[hfilt], hee_j[hfilt]):
+                    m[i,j:] |= bleedval
+            if self.ccd == 2 and self.quadrant == 3:
+                hee_i, hee_j = np.where(im > 100)
+                hfilt = (hee_j < 2712)
+                for i,j in zip(hee_i[hfilt], hee_j[hfilt]):
+                    m[i,j:] |= bleedval
+        return masks
+
+
     # Add a hotcolumn mask
     def add_hotcolmask(self, masks, hotcols, hcvalue, prescan=False ):
         # Prescan==True -> The hot columns INCLUDE the prescan region
@@ -402,10 +420,11 @@ class DataFiles:
         self.quad_mass = self.dHeight * self.dWidth * self.grams_per_pixel
         self.scharge = 7.027e-5
         
-    def __init__(self, quad, ecount):
+    def __init__(self, quad, ecount, ccd=1):
         self.ecount = ecount
         self.updateMasks = False
         self.quadrant = quad
+        self.ccd = ccd
         # quadrants = [0,1,2]
         self.s = np.array([[1, 1, 1], [1,1,1], [1,1,1]])
         self.e2ev = 3.8
