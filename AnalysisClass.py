@@ -1,6 +1,7 @@
 import numpy as np
 from astropy.io import fits
 from scipy import stats
+from scipy import special
 from astropy import stats as astrostats
 import matplotlib.pyplot as plt
 from time import time
@@ -903,6 +904,8 @@ class Analysis:
             count_errs[1,i] = ci[1]
         return count_errs
 
+    # Old code I'm proud of but it is slow and inefficient compared to
+    # scipy.special.pdtri
     def poiss_upperlimit(self, count, perc=.9):
         # Gamma function for Poisson upper limit calculations
         gamma = lambda k, ts: ts**k * np.exp(-ts)
@@ -917,21 +920,7 @@ class Analysis:
 
     # Calculate the upper limits given counts and percentage
     def create_upperlimit(self, counts, perc=.90):
-        count_UL = np.zeros(len(counts))
-        sig = stats.norm.ppf(perc, 0, 1)
-
-        if not hasattr(self, 'poisson'):
-            poiss = {}
-            for i in range(31):
-                poiss[i] = self.poiss_upperlimit(i)
-            self.poisson = poiss
-        for i,k in enumerate(counts):
-            if k > 30:
-                h1 = ((sig + np.sqrt(sig**2 + 4*k))/2)**2
-            else:
-                h1 = self.poisson[k]
-            count_UL[i] = h1
-
+        count_UL = special.pdtri(counts, 1-perc)
         return count_UL
         
     
