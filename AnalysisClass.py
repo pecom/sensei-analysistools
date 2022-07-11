@@ -258,18 +258,18 @@ class DataFiles:
         return masks
 
     # Add a halo mask using convolution to make life easier and faster!
-    def conv_halomask(self, masks, images, haloval, rad):
+    def conv_halomask(self, masks, images, haloval, rad, halo_thresh=100):
         numero = np.arange(len(masks))
         imsize = images[0].shape
         tfilt = self.get_genfilt(rad).astype(int)
         for m, im, n in zip(masks, images, numero):
-            halo_pos = (im > 100)
+            halo_pos = (im > halo_thresh)
             conved_mask = np.round(signal.fftconvolve(halo_pos, tfilt, mode='same')).astype(bool)
             m[conved_mask] |= haloval
         return masks
     
     # Add a halo mask using convolution to make life easier and faster!
-    def cluster_halomask(self, masks, images, haloval, rad):
+    def cluster_halomask(self, masks, images, haloval, rad, halo_thresh=100):
         numero = np.arange(len(masks))
         imsize = images[0].shape
         tfilt = self.get_genfilt(rad).astype(int)
@@ -277,42 +277,42 @@ class DataFiles:
             [clusterID,numClu] = label(im, self.s)
             lbls = np.arange(numClu+1)
             energyTots = labeled_comprehension(im, clusterID, lbls, lambda x : np.sum(x), float, 0)
-            good_energy = (energyTots >= 100)
+            good_energy = (energyTots >= halo_thresh)
             good_thresh = lbls[good_energy]
             good_mask = np.zeros_like(clusterID).astype(bool)
             for g in good_thresh:
                 good_mask += (clusterID == g)
-            good_mask = good_mask.astype(int) * 200
+            good_mask = good_mask.astype(int) * 2 * halo_thresh # Just needs to be greater than halo_thresh
 
-            halo_pos = (good_mask > 100)
+            halo_pos = (good_mask > halo_thresh)
             conved_mask = np.round(signal.fftconvolve(halo_pos, tfilt, mode='same')).astype(bool)
             m[conved_mask] |= haloval
         return masks
 
     # Add a bleed mask using convolution to make life easier and faster!
     # Rad should be 100 for 1e- analysis and 50 for 2e- analysis
-    def conv_bleedmask(self, masks, images, bleedval, rad):
+    def conv_bleedmask(self, masks, images, bleedval, rad, bleed_thresh = 100):
         numero = np.arange(len(masks))
         imsize = images[0].shape
         tfilt = self.get_bleedfilt(rad).astype(int)
         for m, im, n in zip(masks, images, numero):
-            hee_pos = (im > 100)
+            hee_pos = (im > bleed_thresh)
             conved_mask = np.round(signal.fftconvolve(hee_pos, tfilt, mode='same')).astype(bool)
             m[conved_mask] |= bleedval
         return masks
 
     # Adding a bleeding edge feature.
-    def bleededge(self, masks, images, bleedval):
+    def bleededge(self, masks, images, bleedval, bleed_thresh = 100):
         numero = np.arange(len(masks))
         imsize = images[0].shape
         for m, im, n in zip(masks, images, numero):
             if self.ccd == 1 and self.quadrant == 1:
-                hee_i, hee_j = np.where(im > 100)
+                hee_i, hee_j = np.where(im > bleed_thresh)
                 hfilt = (hee_j > 1784)
                 for i,j in zip(hee_i[hfilt], hee_j[hfilt]):
                     m[i,j:] |= bleedval
             if self.ccd == 2 and self.quadrant == 3:
-                hee_i, hee_j = np.where(im > 100)
+                hee_i, hee_j = np.where(im > bleed_thresh)
                 hfilt = (hee_j < 2712)
                 for i,j in zip(hee_i[hfilt], hee_j[hfilt]):
                     m[i,j:] |= bleedval
