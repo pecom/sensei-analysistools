@@ -1048,9 +1048,9 @@ class Analysis:
         newcount = count - expo*sc
         return newcount
     
-    def __init__(self, q, e, bf):
+    def __init__(self, q, e, bf, ccd=1):
         self.flags = bf
-        dfiles = DataFiles(q, e)
+        dfiles = DataFiles(q, e, ccd)
         self.df = dfiles
         
         
